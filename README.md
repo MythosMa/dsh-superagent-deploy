@@ -15,9 +15,11 @@
 
 **前置**：Docker Desktop（Windows 需 WSL2 后端），内存 ≥ 8GB，网络能访问 GitHub/npm。
 
-> **先记住一件事**：镜像只是可随时重建的部署件，**所有状态与密钥都在宿主机数据目录** `~/dsh-superagent-data`
-> （Windows：`%USERPROFILE%\dsh-superagent-data`），由部署脚本自动创建。删掉它 = 模型 key、GitHub 登录、
-> 工单历史、MySQL 数据全丢，重建镜像也救不回来。详见下方**「本地数据目录」**（必读）。
+> [!IMPORTANT]
+> **先记住一件事**：镜像只是可随时重建的部署件，**所有状态与密钥都在宿主机数据目录**
+> `~/dsh-superagent-data`（Windows：`%USERPROFILE%\dsh-superagent-data`），由部署脚本自动创建。
+> 删掉它 = 模型 key、GitHub 登录、工单历史、MySQL 数据全丢，重建镜像也救不回来。
+> **首次部署前请先读下方「本地数据目录」章节（必读）。**
 
 ```bash
 # macOS / Linux / Git-Bash
@@ -32,6 +34,9 @@ powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 首次构建约 10–30 分钟（拉取源码 + 下载依赖）。完成后脚本会打印面板地址与 token。
 
 ### 本地数据目录
+
+> [!WARNING]
+> **首次部署前必读**：数据目录的位置一旦定下，迁移成本很高（见下方四条规矩）；先读完本节再执行安装命令。
 
 `compose.yaml` 用 bind mount 把数据目录挂进容器，**容器内不存任何状态**——数据目录才是本体：
 

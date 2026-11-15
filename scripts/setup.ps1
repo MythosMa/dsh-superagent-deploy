@@ -21,6 +21,20 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot   # scripts → 仓库根
 Set-Location $Root
 
+# DSA_DATA_DIR 与 docker compose 共用仓库根的 .env：环境变量 > .env > 默认值。
+# 两者必须指向同一目录，否则 compose 的 env_file 会指向一个没初始化过的路径（报 env file not found）。
+if (-not $env:DSA_DATA_DIR) {
+  $envFile = Join-Path $Root '.env'
+  if (Test-Path $envFile) {
+    $hit = Select-String -Path $envFile -Pattern '^\s*DSA_DATA_DIR\s*=\s*(.+?)\s*$' | Select-Object -Last 1
+    if ($hit) {
+      $v = $hit.Matches[0].Groups[1].Value.Trim()
+      $v = $v -replace '\s+#.*$', ''
+      $env:DSA_DATA_DIR = $v.Trim().Trim([char]'"').Trim([char]"'")
+    }
+  }
+}
+
 $DataDir = if ($env:DSA_DATA_DIR) { $env:DSA_DATA_DIR } else { Join-Path $env:USERPROFILE 'dsh-superagent-data' }
 # 统一用正斜杠，避免 Compose 解析 Windows 反斜杠的问题
 $env:DSA_DATA_DIR = $DataDir -replace '\\', '/'

@@ -36,9 +36,19 @@ export SUPERAGENT_INSTALL_GO="$INSTALL_GO" SUPERAGENT_INSTALL_FLUTTER="$INSTALL_
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+COMPOSE="$ROOT/compose.yaml"
+
+# DSA_DATA_DIR 与 docker compose 共用仓库根的 .env：环境变量 > .env > 默认值。
+# 两者必须指向同一目录，否则 compose 的 env_file 会指向一个没初始化过的路径（报 env file not found）。
+if [ -z "${DSA_DATA_DIR:-}" ] && [ -f "$ROOT/.env" ]; then
+  DSA_DATA_DIR="$(sed -n 's/^[[:space:]]*DSA_DATA_DIR[[:space:]]*=[[:space:]]*//p' "$ROOT/.env" \
+    | tail -n 1 | tr -d '\r' \
+    | sed -e 's/[[:space:]]#.*$//' \
+          -e 's/^"\(.*\)"[[:space:]]*$/\1/' -e "s/^'\(.*\)'[[:space:]]*$/\1/" \
+          -e 's/[[:space:]]*$//')"
+fi
 DATA_DIR="${DSA_DATA_DIR:-$HOME/dsh-superagent-data}"
 export DSA_DATA_DIR="$DATA_DIR"
-COMPOSE="$ROOT/compose.yaml"
 
 echo "== 1/5 检查 Docker =="
 command -v docker >/dev/null || { echo "未找到 docker，请先安装 Docker Desktop"; exit 1; }

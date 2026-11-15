@@ -389,6 +389,9 @@ cd dsh-superagent-deploy && docker compose -f compose.yaml up -d
 | 切源后 `github: Not Found 404` | 旧仓库订阅线程被按新仓库轮询 | `switch-repo.sh` 已自动清理；手动 `POST /threads/<key>/unsubscribe` |
 | DBeaver 连 MySQL 报 RSA 公钥错误 | MySQL 8.4 `caching_sha2_password` | 驱动属性加 `allowPublicKeyRetrieval=true` |
 | Windows 上 compose 路径为空 | `HOME` 未设置 | 用 `setup.ps1` 或设置 `DSA_DATA_DIR`（正斜杠路径） |
+| 升级后"配置全没了" | 改过 `DSA_DATA_DIR`，compose 挂到了新空目录 | 改回原路径；旧数据仍在原目录（路径必须前后一致，写进 `.env`） |
+| `docker compose up` 报 `env file ... not found` | 没初始化数据目录（缺 `superagent.env` / `mysql.env`） | 先跑 `scripts/init-data.sh`，或用 `setup.sh` |
+| Linux 上备份/删除数据目录报权限不足 | 容器把属主改成 uid 1001（`dsh`） | 用 `sudo`，或先 `docker compose down` 再操作 |
 
 **重建主 Session（模型配晚了的补救）**：
 ```bash

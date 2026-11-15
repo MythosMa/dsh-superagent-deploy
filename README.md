@@ -1,0 +1,99 @@
+# dsh-superagent-deploy
+
+> **独立部署层**：把 [super-agent](https://github.com/deepseek-ai/dsh-superagent-prototype)（MIT）打包成开箱即用的 Docker 部署。
+> 本仓库**不含** super-agent 源码——构建镜像时会从 GitHub 拉取（可指定仓库与 ref）。
+
+## 特性
+
+- 一条命令部署（macOS / Linux / Windows），自动建数据目录、构建、启动、等待就绪
+- **版本可钉**：`SUPERAGENT_REPO` / `SUPERAGENT_REF` 指定源码仓库与 commit，保证可复现
+- 镜像 = 无密钥、可重建；状态与密钥全部在宿主机数据目录：`~/dsh-superagent-data`
+- 可选组件：MySQL（默认不启动）、Go / Flutter（可跳过）、自定义工具链钩子
+- 附带完整手册、运维文档、拆工单模板
+
+## 快速开始
+
+**前置**：Docker Desktop（Windows 需 WSL2 后端），内存 ≥ 8GB，网络能访问 GitHub/npm。
+
+```bash
+# macOS / Linux / Git-Bash
+git clone <本仓库地址> dsh-superagent-deploy
+cd dsh-superagent-deploy
+bash scripts/setup.sh
+
+# Windows PowerShell
+powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
+```
+
+首次构建约 10–30 分钟（拉取源码 + 下载依赖）。完成后脚本会打印面板地址与 token。
+
+### 可选参数
+
+| 需求 | 用法 |
+|---|---|
+| 同时启动 MySQL（默认不启动） | `--with-mysql`（Windows：`-WithMysql`） |
+| 安装 Go / Flutter（默认不装） | `--with-go --with-flutter`（Windows：`-WithGo -WithFlutter`） |
+| 指定源码仓库（你的 fork） | `--repo https://github.com/<you>/<fork>.git`（Windows：`-Repo ...`） |
+| 钉源码版本（推荐生产） | `--ref <commit/tag>`（Windows：`-Ref ...`），或写进 `.env` |
+| 其他开发环境（Rust/Java/Python 包…） | 编辑 [toolchains/extra.sh](toolchains/extra.sh)，构建时自动执行 |
+
+## 构建参数（也可写在 `.env` 里，见 [.env.example](.env.example)）
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `SUPERAGENT_REPO` | 上游 prototype | 源码仓库 |
+| `SUPERAGENT_REF` | `main` | 分支 / tag / commit |
+| `SUPERAGENT_INSTALL_GO` | `0` | `1` 启用 Go（默认不装） |
+| `SUPERAGENT_INSTALL_FLUTTER` | `0` | `1` 启用 Flutter（默认不装） |
+| `DSA_DATA_DIR` | `~/dsh-superagent-data` | 数据目录（Windows 由 setup.ps1 设置） |
+
+## 兼容性
+
+本部署层依赖 super-agent 的以下约定；跨版本升级时请验证：
+
+| 依赖点 | 说明 |
+|---|---|
+| `package.json` / `pnpm-lock.yaml` / `src/` | 构建 bundle |
+| `cordis.patch.yml` | 作为 DSH bundle 的插件补丁 |
+| `examples/profile.cordis.patch.yml` | 首启生成机器配置 |
+| `prompts/`、`skills/`、`locale/` | 运行期读取 |
+| `engines.dsh` 与面板 API `/orchestrator/api/*` | 镜像内 dsh 版本与面板接口 |
+
+> 推荐：发布部署版本时记录「已测试的 `SUPERAGENT_REF`」，用户按需钉住。
+
+## 更新
+
+```bash
+# 部署层更新（本仓库）
+git pull
+docker compose -f compose.yaml up -d --build
+
+# 源码版本更新（钉到新的 commit）
+SUPERAGENT_REF=<new-commit> docker compose -f compose.yaml up -d --build
+```
+
+升级前备份 `~/dsh-superagent-data`。不建议用脚本拉取代码——脚本只负责构建与启动。
+
+## 目录结构
+
+```
+dsh-superagent-deploy/
+├── Dockerfile              # 构建时拉取 super-agent 源码并编译 bundle
+├── compose.yaml            # superagent + 可选 mysql（--profile mysql）
+├── docker-entrypoint.sh    # 容器入口（首启初始化、端口转发）
+├── toolchains/extra.sh     # 自定义工具链钩子
+├── scripts/                # setup / init-data / switch-repo / accept-invites / add-instance
+├── docs/                   # 部署手册 · 运维手册 · 工单模板
+├── mysql.env.example / superagent.env.example / .env.example
+└── README.md
+```
+
+## 文档
+
+- **[部署手册（从零到运行，macOS/Windows）](docs/manual.md)**
+- [运维手册：多仓库、合作者、备份升级、故障排查](docs/operations.md)
+- [拆工单模板：Flutter + Go + MySQL](docs/ticket-templates.md)
+
+## License
+
+MIT。super-agent 上游代码在其自身仓库中按 MIT 分发，本仓库仅提供部署层。

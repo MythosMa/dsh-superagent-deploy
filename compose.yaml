@@ -1,0 +1,71 @@
+# ===========================================================================
+# super-agent 部署编配（独立部署仓库）
+# 用法：
+#   docker compose up -d                          # 仅 super-agent
+#   docker compose --profile mysql up -d          # 同时启用 MySQL
+#   docker compose build --build-arg SUPERAGENT_REF=<commit>   # 钉源码版本
+# 构建参数（也可写在 .env 里）：
+#   SUPERAGENT_REPO / SUPERAGENT_REF   源码仓库与 ref
+#   SUPERAGENT_INSTALL_GO / SUPERAGENT_INSTALL_FLUTTER  0 跳过对应工具链
+# 数据目录默认 $HOME/dsh-superagent-data，可用 DSA_DATA_DIR 覆盖
+# ===========================================================================
+name: dsh-superagent
+
+services:
+  superagent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SUPERAGENT_REPO: ${SUPERAGENT_REPO:-https://github.com/deepseek-ai/dsh-superagent-prototype.git}
+        SUPERAGENT_REF: ${SUPERAGENT_REF:-main}
+        INSTALL_GO: ${SUPERAGENT_INSTALL_GO:-0}
+        INSTALL_FLUTTER: ${SUPERAGENT_INSTALL_FLUTTER:-0}
+    image: dsh-superagent:local
+    container_name: dsh-superagent
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:3082:3182"
+    volumes:
+      - ${DSA_DATA_DIR:-$HOME/dsh-superagent-data}/profile:/data/dsh
+      - ${DSA_DATA_DIR:-$HOME/dsh-superagent-data}/gh-agent:/data/gh-agent
+      - ${DSA_DATA_DIR:-$HOME/dsh-superagent-data}/state:/data/state
+    environment:
+      DSH_HOME: /data/dsh
+      GH_CONFIG_DIR: /data/gh-agent
+      TZ: Asia/Shanghai
+    env_file:
+      - ${DSA_DATA_DIR:-$HOME/dsh-superagent-data}/superagent.env
+    mem_limit: 4g
+    cpus: 4
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "-H", "x-orchestrator-request: 1", "http://127.0.0.1:3082/orchestrator/api/state"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+  mysql:
+    image: mysql:8.4
+    # 可选组件：仅在 `--profile mysql` 时启动
+    profiles: ["mysql"]
+    container_name: dsh-superagent-mysql
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:13306:3306"
+    volumes:
+      - ${DSA_DATA_DIR:-$HOME/dsh-superagent-data}/mysql:/var/lib/mysql
+    env_file:
+      - ${DSA_DATA_DIR:-$HOME/dsh-superagent-data}/mysql.env
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    mem_limit: 1g
+    cpus: 2

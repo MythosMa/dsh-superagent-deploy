@@ -21,6 +21,7 @@ services:
         SUPERAGENT_REF: ${SUPERAGENT_REF:-main}
         INSTALL_GO: ${SUPERAGENT_INSTALL_GO:-0}
         INSTALL_FLUTTER: ${SUPERAGENT_INSTALL_FLUTTER:-0}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-}
     image: dsh-superagent:local
     container_name: dsh-superagent
     restart: unless-stopped

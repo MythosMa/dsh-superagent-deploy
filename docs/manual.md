@@ -379,6 +379,7 @@ cd dsh-superagent-deploy && docker compose -f compose.yaml up -d
 | 现象 | 原因 | 处理 |
 |---|---|---|
 | 首次构建卡住/失败 | 网络慢（npm/GitHub/Flutter） | 重试；必要时配 npm 镜像/代理后重建 |
+| 构建时 apt 报 `502 Bad Gateway` | deb.debian.org 节点抖动 | 已自动重试；仍失败用 `DEBIAN_MIRROR=mirrors.aliyun.com` 指定镜像源后重建 |
 | 容器 `unhealthy` | 内部健康检查失败 | `docker logs dsh-superagent`；确认 dsh 与 socat 在跑 |
 | 面板打不开 / Empty reply | 宿主无法连容器 | 镜像内 socat 已内置（3182→127.0.0.1:3082），确认 compose 端口是 `3082:3182` |
 | setup 报 `repositoryUnset` | 没填仓库 | Sources → repository 填 `owner/name` |

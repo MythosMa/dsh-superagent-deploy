@@ -16,7 +16,12 @@ FROM node:24-bookworm-slim AS bundle-builder
 ARG SUPERAGENT_REPO=https://github.com/deepseek-ai/dsh-superagent-prototype.git
 ARG SUPERAGENT_REF=main
 
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+ARG DEBIAN_MIRROR=
+RUN if [ -n "${DEBIAN_MIRROR}" ]; then \
+      sed -i "s|deb.debian.org|${DEBIAN_MIRROR}|g; s|security.debian.org|${DEBIAN_MIRROR}|g" /etc/apt/sources.list.d/debian.sources; \
+    fi
+RUN apt-get update -o Acquire::Retries=5 \
+    && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -40,7 +45,12 @@ ARG INSTALL_FLUTTER=0
 ENV DEBIAN_FRONTEND=noninteractive
 
 # ---- 基础工具 ----
-RUN apt-get update && apt-get install -y --no-install-recommends \
+ARG DEBIAN_MIRROR=
+RUN if [ -n "${DEBIAN_MIRROR}" ]; then \
+      sed -i "s|deb.debian.org|${DEBIAN_MIRROR}|g; s|security.debian.org|${DEBIAN_MIRROR}|g" /etc/apt/sources.list.d/debian.sources; \
+    fi
+RUN apt-get update -o Acquire::Retries=5 \
+    && apt-get install -y --no-install-recommends \
     git git-lfs tmux python3 ca-certificates curl unzip xz-utils zip \
     gosu procps openssh-client libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
@@ -84,7 +94,7 @@ COPY --from=bundle-builder /src /opt/dsh-superagent
 # ---- socat：宿主端口转发用（放晚层，避免使前方大依赖层缓存失效）----
 # apt 源偶发 502，重试 3 次再放弃
 RUN for i in 1 2 3; do \
-      apt-get update && break || sleep 5; \
+      apt-get update -o Acquire::Retries=5 && break || sleep 5; \
     done \
     && apt-get install -y --no-install-recommends socat \
     && rm -rf /var/lib/apt/lists/*

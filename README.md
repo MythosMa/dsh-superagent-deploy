@@ -33,6 +33,10 @@ powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 
 首次构建约 10–30 分钟（拉取源码 + 下载依赖）。完成后脚本会打印面板地址与 token。
 
+> **网络提示**：Docker 守护进程需要能访问 Docker Hub（国内建议在 Docker Desktop → Settings → Resources → Proxies 配置代理，
+> 如 `http://host.docker.internal:7890`）。若构建时 apt 报 `502 Bad Gateway`，重试即可；仍失败可指定镜像源：
+> `DEBIAN_MIRROR=mirrors.aliyun.com bash scripts/setup.sh ...`。
+
 ### 本地数据目录
 
 > [!WARNING]
